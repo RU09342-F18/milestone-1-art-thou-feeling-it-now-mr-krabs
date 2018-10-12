@@ -1,11 +1,11 @@
 #include <msp430.h> 
 
-//We back bitches
 /**
  * main.c
  */
 
-int byte = 0;
+unsigned int byte = 0;
+unsigned int size = 0;
 
 int main(void)
 {
@@ -44,18 +44,43 @@ int main(void)
     // RX
     P3SEL |= BIT4;                              // Enable RX on pin 3.4
 
-    //UART Initialization
-    UCA0IE |= UCRXIE;                           // Enable Interrupt on RX
-    UCA0IFG &= ~UCRXIFG;                        // Clear Interrupt Flag
-
-    // Baud Rate
+    // UART Initialization
+    UCA0CTL1 |= UCSWRST;                        // **Put state machine in reset**
     UCA0CTL1 |= UCSSEL_2;
     UCA0BR0 = 104;
     UCA0BR1 = 0;
-    UCA0MCTL |= UCBRS0;
-    UCA0MCTL &= ~UCBRF0;
-
-
+    UCA0MCTL |= UCBRS_1 + UCBRF_0;
+    UCA0CTL1 &= ~UCSWRST;                       // **Initialize USCI state machine**
+    UCA0IE |= UCRXIE;                           // Enable Interrupt on RX
+    UCA0IFG &= ~UCRXIFG;                        // Clear Interrupt Flag
 
 	return 0;
+}
+
+
+#pragma vector=USCI_A0_VECTOR
+__interrupt void USCI_A0_ISR(void)
+{
+  switch(byte)
+  {
+  case 0:
+      size = UCA0RXBUF - 3;                     // Save Packet Size
+      break;                                    // Vector 0 - no interrupt
+  case 1:
+      TA0CCR1 = UCA0RXBUF;                      // Sets Red PWM
+      break;
+  case 2:
+      TA0CCR2 = UCA0RXBUF;                      // Sets Green PWM
+      break;
+  case 3:
+      TA0CCR3 = UCA0RXBUF;                      // Sets Blue PWM
+      while(!(UCA0IFG&UCTXIFG));
+          UCA0TXBUF = size;
+      break;
+  default:
+      while(!(UCA0IFG&UCTXIFG));
+          UCA0TXBUF = UCA0RXBUF;
+      break;
+  }
+  byte++;
 }
