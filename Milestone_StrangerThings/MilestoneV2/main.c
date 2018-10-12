@@ -15,26 +15,29 @@ int main(void)
 	TA0CTL |= TASSEL_2 + MC_1;                  // Setup Timer A0 in UP mode w/ SMCLK
 	TA0CCR0 = 256;                              // Set TA0CCR0 to 255
 
-	TA0CCTL1 |= OUTMOD_7;                       // Enable Output
+	TA0CCTL1 |= OUTMOD_3;                       // Enable Output
 	TA0CCR1 = 0;                                // Set Duty Cycle to 0%
 
-	TA0CCTL2 |= OUTMOD_7;                       // Enable Output
-	TA0CCR2 = 0;                                // Set Duty Cycle to 0%
+	TA0CCTL2 |= OUTMOD_3;                       // Enable Output
+	TA0CCR2 = 200;                                // Set Duty Cycle to 0%
 
-	TA0CCTL3 |= OUTMOD_7;                       // Enable Output
-	TA0CCR3 = 0;                                // Set Duty Cycle to 0%
+	TA0CCTL3 |= OUTMOD_3;                       // Enable Output
+	TA0CCR3 = 255;                                // Set Duty Cycle to 0%
 
 	// RGB Setup
 	// RED
-	P1OUT |= BIT2;                              // Set Pin 1.2 to Output
+	P1OUT |= BIT2;                              // Set Pin 1.2 to High
+	P1DIR |= BIT2;                              // Set Pin 1.2 to Output
 	P1SEL |= BIT2;                              // Enable TA0.1 Output
 
-	// RED
-    P1OUT |= BIT3;                              // Set Pin 1.3 to Output
+	// GREEN
+	P1OUT |= BIT3;                              // Set Pin 1.3 to High
+	P1DIR |= BIT3;                              // Set Pin 1.3 to Output
     P1SEL |= BIT3;                              // Enable TA0.2 Output
 
-    // RED
-    P1OUT |= BIT4;                              // Set Pin 1.4 to Output
+    // BLUE
+    P1OUT |= BIT4;                              // Set Pin 1.4 to High
+    P1DIR |= BIT4;                              // Set Pin 1.4 to Output
     P1SEL |= BIT4;                              // Enable TA0.3 Output
 
     // UART Setup
@@ -53,6 +56,8 @@ int main(void)
     UCA0CTL1 &= ~UCSWRST;                       // **Initialize USCI state machine**
     UCA0IE |= UCRXIE;                           // Enable Interrupt on RX
     UCA0IFG &= ~UCRXIFG;                        // Clear Interrupt Flag
+
+    while(1);
 
 	return 0;
 }
