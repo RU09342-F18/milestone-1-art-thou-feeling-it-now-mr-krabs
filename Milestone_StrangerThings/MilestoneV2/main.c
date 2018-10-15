@@ -16,13 +16,13 @@ int main(void)
 	TA0CCR0 = 256;                              // Set TA0CCR0 to 255
 
 	TA0CCTL1 |= OUTMOD_3;                       // Enable Output
-	TA0CCR1 = 0;                                // Set Duty Cycle to 0%
+	TA0CCR1 = 0x00;                                // Set Duty Cycle to 0%
 
 	TA0CCTL2 |= OUTMOD_3;                       // Enable Output
-	TA0CCR2 = 200;                                // Set Duty Cycle to 0%
+	TA0CCR2 = 0x00;                                // Set Duty Cycle to 0%
 
 	TA0CCTL3 |= OUTMOD_3;                       // Enable Output
-	TA0CCR3 = 255;                                // Set Duty Cycle to 0%
+	TA0CCR3 = 0x00;                                // Set Duty Cycle to 0%
 
 	// RGB Setup
 	// RED
@@ -41,6 +41,8 @@ int main(void)
     P1SEL |= BIT4;                              // Enable TA0.3 Output
 
     // UART Setup
+
+    P4SEL |= BIT4+BIT5;
     // TX
     P3SEL |= BIT3;                              // Enable TX on pin 3.3
 
@@ -48,14 +50,16 @@ int main(void)
     P3SEL |= BIT4;                              // Enable RX on pin 3.4
 
     // UART Initialization
-    UCA0CTL1 |= UCSWRST;                        // **Put state machine in reset**
-    UCA0CTL1 |= UCSSEL_2;
-    UCA0BR0 = 104;
-    UCA0BR1 = 0;
-    UCA0MCTL |= UCBRS_1 + UCBRF_0;
-    UCA0CTL1 &= ~UCSWRST;                       // **Initialize USCI state machine**
-    UCA0IE |= UCRXIE;                           // Enable Interrupt on RX
-    UCA0IFG &= ~UCRXIFG;                        // Clear Interrupt Flag
+    UCA1CTL1 |= UCSWRST;                        // **Put state machine in reset**
+    UCA1CTL1 |= UCSSEL_2;
+    UCA1BR0 = 104;
+    UCA1BR1 = 0;
+    UCA1MCTL |= UCBRS_1 + UCBRF_0;
+    UCA1CTL1 &= ~UCSWRST;                       // **Initialize USCI state machine**
+    UCA1IE |= UCRXIE;                           // Enable Interrupt on RX
+    UCA1IFG &= ~UCRXIFG;                        // Clear Interrupt Flag
+
+    __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
 
     while(1);
 
@@ -63,28 +67,39 @@ int main(void)
 }
 
 
-#pragma vector=USCI_A0_VECTOR
-__interrupt void USCI_A0_ISR(void)
+#pragma vector=USCI_A1_VECTOR
+__interrupt void USCI_A1_ISR(void)
 {
   switch(byte)
   {
   case 0:
-      size = UCA0RXBUF - 3;                     // Save Packet Size
+      size = UCA1RXBUF;                    // Save Packet Size
       break;                                    // Vector 0 - no interrupt
   case 1:
-      TA0CCR1 = UCA0RXBUF;                      // Sets Red PWM
+      TA0CCR1 = UCA1RXBUF;                      // Sets Red PWM
       break;
   case 2:
-      TA0CCR2 = UCA0RXBUF;                      // Sets Green PWM
+      TA0CCR2 = UCA1RXBUF;                      // Sets Green PWM
       break;
   case 3:
-      TA0CCR3 = UCA0RXBUF;                      // Sets Blue PWM
-      while(!(UCA0IFG&UCTXIFG));
-          UCA0TXBUF = size;
+      TA0CCR3 = UCA1RXBUF;                      // Sets Blue PWM
+      while(!(UCA1IFG & UCTXIFG));
+          UCA1TXBUF = size - 3;
       break;
   default:
-      while(!(UCA0IFG&UCTXIFG));
-          UCA0TXBUF = UCA0RXBUF;
+      if(byte > size)
+      {
+          byte = 0;
+
+          TA0CCR1 = 0;
+          TA0CCR2 = 0;
+          TA0CCR3 = 0;
+      }
+      else
+      {
+          while(!(UCA1IFG & UCTXIFG));
+                    UCA1TXBUF = UCA1RXBUF;
+      }
       break;
   }
   byte++;
