@@ -4,7 +4,7 @@
  * main.c
  */
 
-unsigned int byte = 0;
+int byte = 0;
 unsigned int size = 0;
 
 int main(void)
@@ -87,18 +87,14 @@ __interrupt void USCI_A1_ISR(void)
           UCA1TXBUF = size - 3;
       break;
   default:
-      if(byte > size)
+      if(byte >= size)
       {
-          byte = 0;
-
-          TA0CCR1 = 0;
-          TA0CCR2 = 0;
-          TA0CCR3 = 0;
+          byte = -1;
       }
       else
       {
           while(!(UCA1IFG & UCTXIFG));
-                    UCA1TXBUF = UCA1RXBUF;
+              UCA1TXBUF = UCA1RXBUF;
       }
       break;
   }
