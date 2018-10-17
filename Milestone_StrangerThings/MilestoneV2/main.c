@@ -4,8 +4,8 @@
  * main.c
  */
 
-int byte = 0;
-unsigned int size = 0;
+volatile int byte = 0;
+unsigned volatile int size = 0;
 
 int main(void)
 {
@@ -87,9 +87,10 @@ __interrupt void USCI_A1_ISR(void)
           UCA1TXBUF = size - 3;
       break;
   default:
-      if(byte >= size)
+      if(byte > size)
       {
           byte = -1;
+          size = 0;
       }
       else
       {
