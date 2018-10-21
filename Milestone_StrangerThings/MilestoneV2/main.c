@@ -1,11 +1,13 @@
 #include <msp430.h> 
 
 /**
+ * Kevin O'Hare and Luke Longo
+ * Last updated: 10/21/18
  * main.c
  */
 
-volatile int byte = 0;
-unsigned volatile int size = 0;
+volatile int byte = 0;					// Track number of Bytes received
+unsigned volatile int size = 0;				// Record Packet size
 
 int main(void)
 {
@@ -50,9 +52,9 @@ int main(void)
     P3SEL |= BIT4;                              // Enable RX on pin 3.4
 
     // UART Initialization
-    UCA1CTL1 |= UCSWRST;                        // **Put state machine in reset**
+    UCA1CTL1 |= UCSWRST;                        // CLear UART
     UCA1CTL1 |= UCSSEL_2;
-    UCA1BR0 = 104;
+    UCA1BR0 = 104;				// Used to set Baud Rate
     UCA1BR1 = 0;
     UCA1MCTL |= UCBRS_1 + UCBRF_0;
     UCA1CTL1 &= ~UCSWRST;                       // **Initialize USCI state machine**
@@ -70,10 +72,10 @@ int main(void)
 #pragma vector=USCI_A1_VECTOR
 __interrupt void USCI_A1_ISR(void)
 {
-  switch(byte)
+  switch(byte)					// Performs action based on current amount of Bytes received
   {
   case 0:
-      size = UCA1RXBUF;                    // Save Packet Size
+      size = UCA1RXBUF;                    	// Save Packet Size
       break;                                    // Vector 0 - no interrupt
   case 1:
       TA0CCR1 = UCA1RXBUF;                      // Sets Red PWM
@@ -84,20 +86,20 @@ __interrupt void USCI_A1_ISR(void)
   case 3:
       TA0CCR3 = UCA1RXBUF;                      // Sets Blue PWM
       while(!(UCA1IFG & UCTXIFG));
-          UCA1TXBUF = size - 3;
+          UCA1TXBUF = size - 3;			// Sends adjusted packet size to TX line	
       break;
   default:
-      if(byte > size)
+      if(byte > size)				// Resets device when process is finished
       {
-          byte = -1;
+          byte = -1;	
           size = 0;
       }
       else
       {
           while(!(UCA1IFG & UCTXIFG));
-              UCA1TXBUF = UCA1RXBUF;
+              UCA1TXBUF = UCA1RXBUF;		// Sends received bytes along the TX line until packet size is reached
       }
       break;
   }
-  byte++;
+  byte++;					// Increases byte counter
 }
